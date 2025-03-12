@@ -1,0 +1,6 @@
+__pycache__/
+*.log
+.config*
+.idea/
+.vscode/
+*test*
