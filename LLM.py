@@ -63,6 +63,27 @@ class ChatContext:
         [config_name]
         """
         
+        self.value_option_prompt = (
+            f"TARGET = {opt_target}\n\n"
+            f"I'm looking for the Linux kernel's menuconfig options that could potentially affect TARGET."
+            f"I have listed some numeric config options listed in menuconfig, along with their corresponding value ranges.\n"
+            f"For each option, please select a value that may help improve TARGET." 
+            f"If the option is not related to TARGET, reset it to the defalut value. \n"
+            f"Config input format:\n "
+            f"[option name] (default value)  \n"
+            f"Value output format: \n" 
+            f"[option name] (recommended  value)   \n"
+            f"For instance, if you are given:\n"
+            f"'maximum CPU number(1=>2 2=>4)  (cpunum) (1)\n" 
+            f"Your response would be:\n"
+            f"'maximum CPU number(1=>2 2=>4)  (cpunum) (2)\n"
+            f"Because when the CPU number is more, the speed is usually better.\n"
+            f"Attention! Please provide your recommended values without extra explanations or additional details.\n"
+            f"Only suggest options that could possibly help TARGET, and do not add units next to the numbers.\n"
+            f"Below are the numeric config options for your recommendations: "
+        )
+        self.new_value_option_prompt = """
+        """
 
         # init regex pattern used to extract answers from the answers
         self.menu_ans_pattern = re.compile(

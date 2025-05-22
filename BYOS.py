@@ -10,7 +10,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("path", default=C.SRCTREE, type=str)
-    parser.add_argument("-t", "--target", default="the unixbench total score", type=str)
+    parser.add_argument("-t", "--target", type=str)
     parser.add_argument("-d", "--debug", action="store_true")
     parser.add_argument("-o", "--output", default="config_output", type=str)
     parser.add_argument("-m", "--mode", default="hybrid", type=str)

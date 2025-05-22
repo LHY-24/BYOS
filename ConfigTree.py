@@ -3,6 +3,8 @@ import LLM
 import logging
 from RAG import KnowledgeGenerator
 import Config as C
+import os
+import json
 
 
 class Config:
@@ -32,6 +34,13 @@ class Config:
         self.logger = logging.getLogger(__name__)
         self.logger.addHandler(logging.FileHandler("Config.log", mode="w"))
         self.logger.propagate = False
+        self.logger.info(target)
+
+        # init question logger to provide training data
+        self.qlogger = logging.getLogger("__question_logger__")
+        self.qlogger.addHandler(logging.FileHandler("QA.log", mode="w"))
+        self.qlogger.propagate = False
+        self.qlogger.info(target)
 
         self.target = target
         self.kg = KnowledgeGenerator(
@@ -144,10 +153,12 @@ class Config:
         knowledge = "\n".join(knowledges)
 
         node_name_list = []
+        node_name_list_without_idx = []
         node_name_dict = {}
         for i in range(len(nodes)):
             node_name = self.get_node_name(nodes[i])
             node_name_list.append(f"{i} {node_name}")
+            node_name_list_without_idx.append(node_name)
             node_name_dict[node_name] = nodes[i]
         # ask LLM
         content = "\n".join(node_name_list)
@@ -156,12 +167,16 @@ class Config:
         menu_node: list[klib.MenuNode] = []
         # get node path prefix
         path = self.node_dir_dict[self.current_node]
+        
+        # record answers for qlogger
+        qlogger_ans = []
         for answer in answers:
             if type(answer) == int:
                 try:
                     node = nodes[answer]
                     menu_node.append(node)
                     self.node_dir_dict[node] = path + [node.prompt[0]]
+                    qlogger_ans.append(node.prompt[0])
                 except IndexError:
                     print(
                         f"LLM gives non-existent nodes(int). current node is\n{nodes}\nLLM gives\n{answer}"
@@ -173,12 +188,18 @@ class Config:
                     node = node_name_dict[answer]
                     menu_node.append(node)
                     self.node_dir_dict[node] = path + [node.prompt[0]]
+                    qlogger_ans.append(node.prompt[0])
                 else:
                     print(
                         f"LLM gives non-existent nodes(string). current node is\n{nodes}\nLLM gives\n{answer}"
                     )
         # print("content:\n", content)
         # print("selection:\n", "\n".join([f"{t[0]} {t[1]}" for t in answers]))
+        # qlogger logging
+        if len(qlogger_ans) > 0:
+            self.qlogger.info(
+                json.dumps({"question": "Menu\t" + "\n".join(node_name_list_without_idx), "answer": qlogger_ans})
+            )
         return menu_node
 
     def process_bool(self, nodes: list[klib.MenuNode]) -> list[klib.MenuNode]:
@@ -211,10 +232,13 @@ class Config:
 
             # answer is a dict[str: int]
             answer = self.chatter.ask_on_off_option(node_names, knowledge)
+            # record answers for qlogger
+            qlogger_ans = []
             for config_name, state in answer.items():
                 config_name = config_name.strip().lower()
                 if config_name in node_name_lower_dict.keys():
                     node = node_name_lower_dict[config_name]
+                    qlogger_ans.append({"config": config_name, "value": state})
                     if node.item.tri_value == state:
                         continue
                     # log
@@ -232,6 +256,11 @@ class Config:
                 else:
                     print(f"Error: config name {config_name} does not exist")
                     print(f"All configs: {node_name_lower_dict.keys()}")
+            # qlogger logging
+            if len(qlogger_ans) > 0:
+                self.qlogger.info(
+                    json.dumps({"question": "Bool\t" + node_names, "answer": qlogger_ans})
+                )
         return new_menu_nodes_dict.values()
 
     def process_binary(self, nodes: list[klib.MenuNode]):
@@ -254,8 +283,11 @@ class Config:
                 answer = answer[1:-1]
             # find selected answer
             found = False
+            # record answer for qlogger
+            qlogger_ans = None
             for choice in node_list:
                 if answer == self.get_simple_node_name(choice):
+                    qlogger_ans = answer
                     # select current option
                     if choice.item.tri_value != 2:
                         # current choice is not selected
@@ -271,48 +303,11 @@ class Config:
                     [self.get_simple_node_name(choice) for choice in choices]
                 )
                 print(f"All configs: {configs}")
-        """
-        question_str_list = []
-        knowledge_list = []
-        for node in nodes:
-            # get name of choices
-            choices: list[klib.MenuNode] = []
-            choices_name_to_node_dict: dict[str, klib.MenuNode] = {}
-            node_list = self.get_menunodes(node)
-            for choice in node_list:
-                choices.append(choice)
-                name = self.get_node_name(choice)
-                question_str_list.append(name)
-                choices_name_to_node_dict[name.lower()] = choice
-            question_str_list.append("////")
-            nodes_choices.append(choices)
-            choices_name_to_node_dict_list.append(choices_name_to_node_dict)
-            knowledge_list.append(self.kg.gen_configs_knowledge(choices, self.target))
-        # get answers from LLM
-        content = "\n".join(question_str_list[:-1])
-        answers = self.chatter.ask_multiple_option(content, "\n\n".join(knowledge_list))
-        # answer is a list of choice names, each name indicates which config should be chosen
-        if len(answers) != len(nodes_choices):
-            # LLM returns error result
-            self.logger.error(
-                f"Unmatched multiple choice: given choices\n{content}\ngot answers\n{answers}"
-            )
-            return
-        for i in range(len(answers)):
-            answer = answers[i].lower()
-            choices_name_to_node_dict = choices_name_to_node_dict_list[i]
-            if answer in choices_name_to_node_dict.keys():
-                node = choices_name_to_node_dict[answer]
-                if node.item.tri_value == 2:
-                    continue
-                # log
-                self.logger.info(
-                    f"Config changed: {node.item.name} from state 'n' to 'y'"
+            else:
+                # qlogger
+                self.qlogger.info(
+                    json.dumps({"question": "Choice\t" + "\n".join([self.get_node_name(choice) for choice in choices]), "answer": qlogger_ans})
                 )
-                choices_name_to_node_dict[answer].item.set_value(
-                    2
-                )  # enable this choice
-        """
 
     def process_value(self, nodes: list[klib.MenuNode]):
         # strings passed to LLM is in form of
@@ -341,11 +336,14 @@ class Config:
         answers = self.chatter.ask_value_option(
             "\n".join(help_info_list), "\n".join(node_info_list)
         )
+        # record answer for qlogger
+        qlogger_ans = []
         # answers is a list of tuple, where tuple[0] is prompt and tuple[1] is value
         # postprocess: set the value
         for answer in answers:
             if answer[0] in prompt_to_node_dict.keys():
                 node = prompt_to_node_dict[answer[0]]
+                qlogger_ans.append({"config": answer[0], "value": answer[1]})
                 if node.item.str_value == answer[1]:
                     continue
                 # log
@@ -354,9 +352,14 @@ class Config:
                     # f"Config changed: {node.item.name} from state '{node.item.str_value}' to '{answer[1]}'"
                 )
                 prompt_to_node_dict[answer[0]].item.set_value(answer[1])
+        # qlogger
+        if len(qlogger_ans) > 0:
+            self.qlogger.info(json.dumps({"question": "Value\t" + "\n".join(node_info_list), "answer": qlogger_ans}))
 
     def save(self, path: str):
         self.kconfig.write_config(path)
+        os.rename("Config.log", path + ".log")
+        os.rename("QA.log", "QA_" + path + ".log")
 
     def get_node_name(self, node: klib.MenuNode):
         name = node.prompt[0]
