@@ -1,7 +1,7 @@
 import os
 import sys
 from lightrag import LightRAG
-from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+from lightrag.llm import gpt_4o_mini_complete
 
 import kconfiglib as klib
 
@@ -101,7 +101,6 @@ def build_kg(linux_path):
     rag = LightRAG(
         working_dir=WORKING_DIR,
         llm_model_func=gpt_4o_mini_complete,  # Use gpt_4o_mini_complete LLM model
-        embedding_func=openai_embed,
         # llm_model_func=gpt_4o_complete  # Optionally, use a stronger model
     )
 
