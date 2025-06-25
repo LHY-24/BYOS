@@ -59,12 +59,14 @@ mv config_output /path/to/linux/kernel/source_code/.config
 ## Citation
 
 ```tex
-@misc{BYOS,
-  author       = {Hongyu Lin, Yuchen Li, Haoran Luo, Kaichun Yao, Libo Zhang, Mingjie Xing, Yanjun Wu},
-  title        = {BYOS: Knowledge-driven Large Language Models for OS Kernel Tuning},
-  year         = {2025},
-  organization = {GitHub},
-  url          = {https://github.com/LHY-24/BYOS},
+@misc{lin2025byosknowledgedrivenlargelanguage,
+      title={BYOS: Knowledge-driven Large Language Models Bring Your Own Operating System More Excellent}, 
+      author={Hongyu Lin and Yuchen Li and Haoran Luo and Kaichun Yao and Libo Zhang and Mingjie Xing and Yanjun Wu},  
+      year={2025},
+      eprint={2503.09663},
+      archivePrefix={arXiv},
+      primaryClass={cs.OS},
+      url={https://arxiv.org/abs/2503.09663}, 
 }
 ```
 
