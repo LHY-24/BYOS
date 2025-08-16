@@ -78,4 +78,4 @@ For further questions, please contact: hongyu2021@iscas.ac.cn, liyuchen2021@isca
 
 ## Acknowledgements
 
-This repo benefits from [AutoOS](https://github.com/xuewuyinhe/AutoOS) and [Agent-R1](https://github.com/0russwest0/Agent-R1). Thanks for their wonderful works.
+This repo benefits from [AutoOS](https://github.com/xuewuyinhe/AutoOS) and [LightRAG](https://github.com/HKUDS/LightRAG). Thanks for their wonderful works.  
